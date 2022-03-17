@@ -34,11 +34,12 @@ app.title=tabtitle
 app.layout = html.Div([
     html.H3('Choose a continuous variable for summary statistics:'),
     dcc.Dropdown(
-        id = 'dropdown',
-        options = [{'label': i, 'value': i} for i in variables_list],
+        id='dropdown',
+        options=[{'label': i, 'value': i} for i in variables_list],
         value=variables_list[0]),
     html.Br(),
-    dcc.Graph(id = 'display-value'),
+    dcc.Graph(id='output1'),
+    dcc.Graph(id='output2'),
     html.A('Code on Github', href=githublink),
     html.Br(),
     html.A("Data Source", href=sourceurl),
@@ -46,7 +47,7 @@ app.layout = html.Div([
 
 # callback
 @app.callback(
-    Output('display-value', 'figure'),
+    Output('output1', 'figure'),
     [Input('dropdown', 'value')])
 def display_value(option):
     grouped_mean = df.groupby(['Cabin Class', 'Embarked'])[option].mean()
@@ -57,27 +58,68 @@ def display_value(option):
         x=results.loc['first'].index,
         y=results.loc['first'][option],
         name='First Class',
-        marker=dict(color=color1)
-    )
+        marker=dict(color=color1),
+        text=results.loc['first'][option],
+        textposition='auto')
+
     data2 = go.Bar(
         x=results.loc['second'].index,
         y=results.loc['second'][option],
         name='Second Class',
-        marker=dict(color=color2)
-    )
+        marker=dict(color=color2),
+        text=results.loc['second'][option],
+        textposition='auto')
+
     data3 = go.Bar(
         x=results.loc['third'].index,
         y=results.loc['third'][option],
         name='Third Class',
-        marker=dict(color=color3)
-    )
+        marker=dict(color=color3),
+        text=results.loc['third'][option],
+        textposition='auto')
+
 
     layout = go.Layout(
         title='Grouped bar chart',
-        xaxis = dict(title = 'Port of Embarkation'), # x-axis label
-        yaxis = dict(title = str(option)), # y-axis label
+        xaxis=dict(title='Port of Embarkation'), # x-axis label
+        yaxis=dict(title=str(option)),) # y-axis label
 
-    )
+    return go.Figure(data=[data1, data2, data3], layout=layout)
+    #return go.Figure(data=[data1], layout=layout)
+
+# callback
+@app.callback(
+    Output('output2', 'figure'),
+    [Input('dropdown', 'value')])
+def display_value(option):
+    grouped_mean = df.groupby(['Embarked', 'Cabin Class'])[option].mean()
+    results = pd.DataFrame(grouped_mean)
+
+    # Create a grouped bar chart
+    data1 = go.Bar(
+        x=results.loc['Cherbourg'].index,
+        y=results.loc['Cherbourg'][option],
+        name='Cherbourg',
+        marker=dict(color='lightgreen'))
+
+    data2 = go.Bar(
+        x=results.loc['Queenstown'].index,
+        y=results.loc['Queenstown'][option],
+        name='Queenstown',
+        marker=dict(color='darkgreen'))
+
+    data3 = go.Bar(
+        x=results.loc['Southampton'].index,
+        y=results.loc['Southampton'][option],
+        name='Southampton',
+        marker=dict(color='lightblue'))
+
+
+    layout = go.Layout(
+        title='Grouped bar chart',
+        xaxis=dict(title='Cabin Class'), # x-axis label
+        yaxis=dict(title=str(option)),) # y-axis label
+
     return go.Figure(data=[data1, data2, data3], layout=layout)
 
 
