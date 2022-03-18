@@ -5,24 +5,38 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import plotly as py
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
 
 # Global variables
-tabtitle = 'Titanic!'
-color1='#92A5E8'
-color2='#8E44AD'
-color3='#FFC300'
+tabtitle = 'Drinks world!'
+color1='teal'
+color2='lightblue'
+color3='crimson'
 sourceurl = 'https://www.kaggle.com/c/titanic'
 githublink = 'https://github.com/plotly-dash-apps/304-titanic-dropdown'
 
 
 # Load data for anlysis
 # https://github.com/austinlasseter/plotly_dash_tutorial/blob/master/00%20resources/titanic.csv
-df = pd.read_csv("https://raw.githubusercontent.com/austinlasseter"
-                 "/plotly_dash_tutorial/master/00%20resources/titanic.csv")
-df['Female'] = df['Sex'].map({'male': 0, 'female': 1})
-df['Cabin Class'] = df['Pclass'].map({1: 'first', 2: 'second', 3: 'third'})
-variables_list = ['Survived', 'Female', 'Fare', 'Age']
+url = "https://raw.git.generalassemb.ly/intuit-ds-15/05-cleaning-combining-data/master/data/drinks.csv?token=AAAKG5FAE42EI3LMYHV2YIDCHUFWI"
+df = pd.read_csv(url)
+df['Alcohol Level'] = pd.cut(
+    x=df['total_litres_of_pure_alcohol'],
+    bins=[0.0, 5.0, 10.0, 100.0],
+    labels=['Low', 'Medium', 'High'])
+df['Alcohol Level'] = df['Alcohol Level'].fillna('Low')
+df.loc[df['country'].isna(), 'continent'] = 'NA'
+
+
+print(df)
+# df['Female'] = df['Sex'].map({'male': 0, 'female': 1})
+# df['Cabin Class'] = df['Pclass'].map({1: 'first', 2: 'second', 3: 'third'})
+variables_list = [
+    'beer_servings',
+    'spirit_servings',
+    'wine_servings',
+    'total_litres_of_pure_alcohol']
 
 # app server config
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -39,6 +53,7 @@ app.layout = html.Div([
         value=variables_list[0]),
     html.Br(),
     dcc.Graph(id='output1'),
+    html.Br(),
     dcc.Graph(id='output2'),
     html.A('Code on Github', href=githublink),
     html.Br(),
@@ -50,38 +65,38 @@ app.layout = html.Div([
     Output('output1', 'figure'),
     [Input('dropdown', 'value')])
 def display_value(option):
-    grouped_mean = df.groupby(['Cabin Class', 'Embarked'])[option].mean()
+    grouped_mean = df.groupby(['Alcohol Level', 'continent'])[option].mean()
     results = pd.DataFrame(grouped_mean)
+    print(results)
 
     # Create a grouped bar chart
     data1 = go.Bar(
-        x=results.loc['first'].index,
-        y=results.loc['first'][option],
-        name='First Class',
+        x=results.loc['Low'].index,
+        y=results.loc['Low'][option],
+        name='Low Alcohol',
         marker=dict(color=color1),
-        text=results.loc['first'][option],
+        text=round(results.loc['Low'][option],1),
         textposition='auto')
 
     data2 = go.Bar(
-        x=results.loc['second'].index,
-        y=results.loc['second'][option],
-        name='Second Class',
+        x=results.loc['Medium'].index,
+        y=results.loc['Medium'][option],
+        name='Medium Alcohol',
         marker=dict(color=color2),
-        text=results.loc['second'][option],
+        text=round(results.loc['Medium'][option],1),
         textposition='auto')
 
     data3 = go.Bar(
-        x=results.loc['third'].index,
-        y=results.loc['third'][option],
-        name='Third Class',
+        x=results.loc['High'].index,
+        y=results.loc['High'][option],
+        name='High Alcohol',
         marker=dict(color=color3),
-        text=results.loc['third'][option],
+        text=round(results.loc['High'][option],1),
         textposition='auto')
-
 
     layout = go.Layout(
         title='Grouped bar chart',
-        xaxis=dict(title='Port of Embarkation'), # x-axis label
+        xaxis=dict(title='Continent'), # x-axis label
         yaxis=dict(title=str(option)),) # y-axis label
 
     return go.Figure(data=[data1, data2, data3], layout=layout)
@@ -92,35 +107,48 @@ def display_value(option):
     Output('output2', 'figure'),
     [Input('dropdown', 'value')])
 def display_value(option):
-    grouped_mean = df.groupby(['Embarked', 'Cabin Class'])[option].mean()
+    grouped_mean = df.groupby(['Alcohol Level', 'continent'])[option].mean()
     results = pd.DataFrame(grouped_mean)
+    print(results)
+    rows = 1
+    cols = 3
+    specs = [[{'type': 'domain'}] * cols] * rows
+    fig = make_subplots(
+        rows=1,
+        cols=3,
+        specs=specs)
 
     # Create a grouped bar chart
-    data1 = go.Bar(
-        x=results.loc['Cherbourg'].index,
-        y=results.loc['Cherbourg'][option],
-        name='Cherbourg',
-        marker=dict(color='lightgreen'))
+    fig.add_trace(go.Pie(
+        labels=results.loc['Low'].index,
+        values=results.loc['Low'][option],
+        name="Low Alcohol",
+        hoverinfo="label+percent+name"), 1, 1)
 
-    data2 = go.Bar(
-        x=results.loc['Queenstown'].index,
-        y=results.loc['Queenstown'][option],
-        name='Queenstown',
-        marker=dict(color='darkgreen'))
+    fig.add_trace(go.Pie(
+        labels=results.loc['Medium'].index,
+        values=results.loc['Medium'][option],
+        name="Medium Alcohol",
+        hoverinfo="label+percent+name"), 1, 2)
 
-    data3 = go.Bar(
-        x=results.loc['Southampton'].index,
-        y=results.loc['Southampton'][option],
-        name='Southampton',
-        marker=dict(color='lightblue'))
+    fig.add_trace(go.Pie(
+        labels=results.loc['High'].index,
+        values=results.loc['High'][option],
+        name="High Alcohol",
+        hoverinfo="label+percent+name"), 1, 3)
 
+    fig.update_traces(hole=0.4, hoverinfo='label+percent+name')
 
     layout = go.Layout(
         title='Grouped bar chart',
-        xaxis=dict(title='Cabin Class'), # x-axis label
-        yaxis=dict(title=str(option)),) # y-axis label
+        xaxis=dict(title='Continent'), # x-axis label
+        yaxis=dict(title=str(option)),
+        annotations=[
+            dict(text='Low', x=0.12, y=0.6, font_size=100, showarrow=False),
+            dict(text='Medium', x=0.15, y=0.6, font_size=20, showarrow=False),
+            dict(text='High', x=0.18, y=0.6, font_size=20, showarrow=False)])
 
-    return go.Figure(data=[data1, data2, data3], layout=layout)
+    return go.Figure(data=fig, layout=layout)
 
 
 if __name__ == '__main__':
